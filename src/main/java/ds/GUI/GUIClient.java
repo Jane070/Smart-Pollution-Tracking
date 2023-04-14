@@ -669,7 +669,6 @@ public class GUIClient implements ActionListener{
                         System.out.println("BroadcastAlerts stream is completed ... sent "+ count+ " alerts");
                         // Shutdown the channel
                         channel.shutdown();
-
                         try {
                             // Wait for the channel to terminate
                             if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
