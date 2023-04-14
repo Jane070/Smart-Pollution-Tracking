@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "ds.pollutionanalysisservice";
+option java_outer_classname = "PollutionAnalysisServiceImp";
+
+service PollutionAnalysisService {
+//    rpc AnalyzePollution (stream PollutionData) returns (PollutionAnalysis); // client-side streaming RPC
+    rpc GetTrendingLocations (TrendingRequest) returns (TrendingLocations); // simple RPC
+    rpc GetLiveTrends (LiveTrendsRequest) returns (stream PollutionAnalysis); // server-side streaming RPC
+}
+
+message TrendingRequest {
+}
+
+message TrendingLocations {
+    string locations = 1;
+}
+
+message LiveTrendsRequest {
+    repeated string locations = 1;
+}
+
+message PollutionAnalysis {
+    string location = 1;
+    string trend = 2;
+}

@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ds.pollutionsensorservice";
+option java_outer_classname = "PollutionSensorServiceImp";
+
+service PollutionSensorService {
+    rpc GetPollutionData (GetPollutionDataRequest) returns (PollutionData); // simple RPC
+    rpc GetCityMultiplePollutionData (GetCityMultiplePollutionDataRequest) returns (stream PollutionData); // server-side streaming RPC
+    rpc GetAveragePollutionData (stream GetAveragePollutionDataRequest) returns (PollutionData); // client-side streaming RPC
+}
+
+message GetPollutionDataRequest {
+    string location = 1;
+}
+
+message GetCityMultiplePollutionDataRequest {
+    string location = 1;
+    int32 num_of_days = 2;
+}
+
+message GetAveragePollutionDataRequest {
+    string location = 1;
+    double air_pollution = 2;
+    double water_pollution = 3;
+
+}
+
+message PollutionData {
+    string location = 1;
+    double air_pollution = 2;
+    double water_pollution = 3;
+    int64 timestamp = 4;
+}
+
+//message GetAveragePollutionDataResponce{
+//    int32 average = 1;
+//}
