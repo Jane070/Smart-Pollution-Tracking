@@ -657,7 +657,6 @@ public class GUIClient implements ActionListener{
 
                         reply8.append(String.valueOf(msg));
                         count += 1;
-
                     }
 
                     @Override
