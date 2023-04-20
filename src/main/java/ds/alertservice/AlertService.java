@@ -40,6 +40,7 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
 
         int port = 50053;
 
+
         try {
 
             Server server = ServerBuilder.forPort(port)
