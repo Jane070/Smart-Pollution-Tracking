@@ -1,9 +1,6 @@
 package ds.pollutionanalysisservice;
 
-import ds.pollutionsensorservice.PollutionData;
-import ds.pollutionsensorservice.PollutionSensorService;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 
 import javax.jmdns.JmDNS;
@@ -19,7 +16,6 @@ import java.util.Random;
  * Description:
  *
  * @Author: Jiaxin Zhang
- * @Creat: 11/04/2023 17:14
  * @Version: 1.8
  */
 public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.PollutionAnalysisServiceImplBase{
@@ -46,6 +42,7 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
 
             Server server = ServerBuilder.forPort(port)
                     .addService(paService)
+                    .intercept(new AuthInterceptor()) // Add the authentication interceptor
                     .build()
                     .start();
 
@@ -62,32 +59,6 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
             e.printStackTrace();
         }
     }
-//        public StreamObserver<PollutionData> analyzePollution(StreamObserver<PollutionAnalysis> responseObserver) {
-//            return new StreamObserver<PollutionData>() {
-//                private String location;
-//
-//                @Override
-//                public void onNext(PollutionData data) {
-//                    location = data.getLocation();
-//                }
-//
-//                @Override
-//                public void onError(Throwable t) {
-//                    // Handle error
-//                }
-//
-//                @Override
-//                public void onCompleted() {
-//                    String trend = random.nextBoolean() ? "Increasing" : "Decreasing";
-//                    PollutionAnalysis analysis = PollutionAnalysis.newBuilder()
-//                            .setLocation(location)
-//                            .setTrend(trend)
-//                            .build();
-//                    responseObserver.onNext(analysis);
-//                    responseObserver.onCompleted();
-//                }
-//            };
-//        }
 
     @Override
     public void getTrendingLocations(TrendingRequest request, StreamObserver<TrendingLocations> responseObserver) {
@@ -110,6 +81,31 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
             responseObserver.onNext(analysis);
         }
         responseObserver.onCompleted();
+    }
+}
+
+class AuthInterceptor implements ServerInterceptor {
+
+    @Override
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+        String authHeader = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid 'authorization' header"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        String token = authHeader.substring("Bearer ".length());
+
+        // Validate the token
+        if (!"2222".equals(token)) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Invalid token"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        return next.startCall(call, headers);
     }
 }
 

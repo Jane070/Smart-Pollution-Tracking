@@ -5,10 +5,8 @@ import ds.alertservice.AlertConfirmation;
 import ds.alertservice.AlertServiceGrpc;
 import ds.pollutionanalysisservice.*;
 import ds.pollutionsensorservice.*;
-import io.grpc.Grpc;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
+import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
 
@@ -24,11 +22,9 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,7 +32,6 @@ import java.util.concurrent.TimeUnit;
  * Description:
  *
  * @Author: Jiaxin Zhang
- * @Creat: 11/04/2023 17:26
  * @Version: 1.8
  */
 public class GUIClient implements ActionListener{
@@ -50,14 +45,34 @@ public class GUIClient implements ActionListener{
     List<String> broadcastLocations = new ArrayList<>();
     List<String> broadcastMessage = new ArrayList<>();
     private ServiceInfo PollutionSensorServiceInfo;
-
-
-    private final CountDownLatch latch = new CountDownLatch(1);
-
-
-    //    private static PollutionSensorServiceGrpc.PollutionSensorServiceStub asyncStub;
-
+//    private final CountDownLatch latch = new CountDownLatch(1);
     private List<ServiceInfo> serviceInfos = new ArrayList<>();
+
+    public static void main(String[] args) throws InterruptedException {
+
+        GUIClient gui = new GUIClient();
+
+        gui.build();
+
+        try {
+
+            // Create a JmDNS instance
+            JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
+
+            // Add a service listener
+            jmdns.addServiceListener("_pollution-sensor._tcp.local.", new MyServiceListener());
+            jmdns.addServiceListener("_pollution-analysis._tcp.local.", new MyServiceListener());
+            jmdns.addServiceListener("_alert-service._tcp.local.", new MyServiceListener());
+
+            // Wait a bit
+            Thread.sleep(20000);
+
+        } catch (UnknownHostException e) {
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
     public static class MyServiceListener implements ServiceListener {
 
@@ -184,7 +199,6 @@ public class GUIClient implements ActionListener{
         JScrollPane scrollPane = new JScrollPane(reply4);
         panel.add(scrollPane);
         reply4 .setEditable(false);
-//        panel.add(reply4 );
 
         panel.setLayout(boxlayout);
 
@@ -212,15 +226,11 @@ public class GUIClient implements ActionListener{
 
         reply5 = new JTextArea("",20,100);
         reply5.setEditable(false);
-//        reply2.setPreferredSize(new Dimension(reply2.getPreferredSize().width, 50));
         panel.add(reply5);
-
-
 
         panel.setLayout(boxlayout);
 
         return panel;
-
     }
 
     private JPanel getService6JPanel() {
@@ -295,31 +305,7 @@ public class GUIClient implements ActionListener{
 
     }
 
-    public static void main(String[] args) throws InterruptedException {
 
-        GUIClient gui = new GUIClient();
-
-        gui.build();
-
-        try {
-
-            // Create a JmDNS instance
-            JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
-
-            // Add a service listener
-            jmdns.addServiceListener("_pollution-sensor._tcp.local.", new MyServiceListener());
-            jmdns.addServiceListener("_pollution-analysis._tcp.local.", new MyServiceListener());
-            jmdns.addServiceListener("_alert-service._tcp.local.", new MyServiceListener());
-
-            // Wait a bit
-            Thread.sleep(20000);
-
-        } catch (UnknownHostException e) {
-            System.out.println(e.getMessage());
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-    }
 
 
 
@@ -360,22 +346,49 @@ public class GUIClient implements ActionListener{
     public void actionPerformed(ActionEvent e) {
         JButton button = (JButton)e.getSource();
         String label = button.getActionCommand();
-        ManagedChannel channel1 = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
+//        ManagedChannel channel1 = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
 
         if (label.equals("Get pollution data")) {
 
             System.out.println("Get pollution data to be invoked ...");
 
-//            ManagedChannel channel1 = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
-            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel1);
+            ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+            channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
+            channelBuilder.keepAliveWithoutCalls(true);
+            ManagedChannel channel = channelBuilder.build();
+
+            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata headers = new Metadata();
+            headers.put(authKey, "Bearer 1111");
+
+            CallCredentials callCredentials = new CallCredentials() {
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
 
             //preparing message to send
             GetPollutionDataRequest request = GetPollutionDataRequest.newBuilder().setLocation(entry1.getText()).build();
 
             //retreving reply from service
-            PollutionData response = blockingStub.getPollutionData(request);
-
-            reply1.setText(String.valueOf(response));
+            try {
+                PollutionData response = blockingStub.getPollutionData(request);
+                reply1.setText(String.valueOf(response));
+            } catch (StatusRuntimeException ex) {
+                System.err.println("Error occurred: " + ex.getMessage());
+                ex.printStackTrace();
+            }
 
 
         }else if (label.equals("Get Data of Last 3 Days")) {
@@ -383,7 +396,32 @@ public class GUIClient implements ActionListener{
             System.out.println("Get the data of the last three days to be invoked ...");
 
 //            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
-            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel1);
+            ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+            channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
+            channelBuilder.keepAliveWithoutCalls(true);
+            ManagedChannel channel = channelBuilder.build();
+
+            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata headers = new Metadata();
+            headers.put(authKey, "Bearer 1111");
+            CallCredentials callCredentials = new CallCredentials() {
+
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+
+            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
 
             //preparing message to send
             GetCityMultiplePollutionDataRequest request = GetCityMultiplePollutionDataRequest.newBuilder().setLocation(entry2.getText()).setNumOfDays(3).build();
@@ -396,7 +434,8 @@ public class GUIClient implements ActionListener{
                     reply2.append(String.valueOf(temp));
                 }
             } catch (StatusRuntimeException ex) {
-            ex.printStackTrace();
+                System.err.println("Error occurred: " + ex.getMessage());
+                ex.printStackTrace();
             }
 
         }else if (label.equals("Add City")) {
@@ -413,9 +452,32 @@ public class GUIClient implements ActionListener{
         } else if (label.equals("Average")) {
             if (!locations.isEmpty()) {
                 // send request to server with all locations in the list
-//                ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
+                ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+                channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
+                channelBuilder.keepAliveWithoutCalls(true);
+                ManagedChannel channel = channelBuilder.build();
+                Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+                Metadata headers = new Metadata();
+                headers.put(authKey, "Bearer 1111");
 
-                PollutionSensorServiceGrpc.PollutionSensorServiceStub asyncStub = PollutionSensorServiceGrpc.newStub(channel1);
+                CallCredentials callCredentials = new CallCredentials() {
+
+                    @Override
+                    public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                        appExecutor.execute(() -> {
+                            try {
+                                applier.apply(headers);
+                            } catch (Throwable e) {
+                                applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void thisUsesUnstableApi() {}
+                };
+
+                PollutionSensorServiceGrpc.PollutionSensorServiceStub asyncStub = PollutionSensorServiceGrpc.newStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
 
 
                 StreamObserver<PollutionData> responseObserver = new StreamObserver<PollutionData>() {
@@ -427,6 +489,7 @@ public class GUIClient implements ActionListener{
 
                     @Override
                     public void onError(Throwable t) {
+                        System.out.println("Error occurred: " + t.getMessage());
                         t.printStackTrace();
                     }
 
@@ -440,8 +503,6 @@ public class GUIClient implements ActionListener{
                 StreamObserver<GetAveragePollutionDataRequest> requestObserver = asyncStub.getAveragePollutionData(responseObserver);
 
                 try {
-
-
                     for (int i = 0; i < locations.size(); i++) {
                         requestObserver.onNext(GetAveragePollutionDataRequest.newBuilder().setLocation(locations.get(i)).build());
                         Thread.sleep(500);
@@ -449,13 +510,13 @@ public class GUIClient implements ActionListener{
 
                     // Mark the end of requests
                     requestObserver.onCompleted();
-
-
                     Thread.sleep(1000);
 
                 } catch (RuntimeException exc) {
+                    System.err.println("Runtime exception occurred: " + exc.getMessage());
                     exc.printStackTrace();
                 } catch (InterruptedException exce) {
+                    System.err.println("Interrupted exception occurred: " + exce.getMessage());
                     exce.printStackTrace();
                 }
 
@@ -467,7 +528,28 @@ public class GUIClient implements ActionListener{
             System.out.println("Get Trending Locations to be invoked ...");
 
             ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50052).usePlaintext().build();
-            PollutionAnalysisServiceGrpc.PollutionAnalysisServiceBlockingStub blockingStub = PollutionAnalysisServiceGrpc.newBlockingStub(channel);
+            // Create custom CallCredentials for authentication
+            CallCredentials callCredentials = new CallCredentials() {
+
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            Metadata headers = new Metadata();
+                            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+                            headers.put(authKey, "Bearer 2222");
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+            PollutionAnalysisServiceGrpc.PollutionAnalysisServiceBlockingStub blockingStub = PollutionAnalysisServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials)
+                    .withDeadlineAfter(5, TimeUnit.SECONDS);
 
             //preparing message to send
             TrendingRequest request = TrendingRequest.newBuilder().build();
@@ -480,7 +562,28 @@ public class GUIClient implements ActionListener{
             System.out.println("Get Live Trends to be invoked ...");
 
             ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50052).usePlaintext().build();
-            PollutionAnalysisServiceGrpc.PollutionAnalysisServiceBlockingStub blockingStub = PollutionAnalysisServiceGrpc.newBlockingStub(channel);
+            // Create custom CallCredentials for authentication
+            CallCredentials callCredentials = new CallCredentials() {
+
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            Metadata headers = new Metadata();
+                            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+                            headers.put(authKey, "Bearer 2222");
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+            PollutionAnalysisServiceGrpc.PollutionAnalysisServiceBlockingStub blockingStub = PollutionAnalysisServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials)
+                    .withDeadlineAfter(5, TimeUnit.SECONDS);
 
 
             //preparing message to send
@@ -495,6 +598,13 @@ public class GUIClient implements ActionListener{
                         reply5.append(String.valueOf(temp));
                     }
                 } catch (StatusRuntimeException ex) {
+                    if (ex.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+                        System.err.println("Deadline exceeded for the RPC call.");
+                    } else if (ex.getStatus().getCode() == Status.Code.UNAUTHENTICATED) {
+                        System.err.println("Authentication failed.");
+                    } else {
+                        System.err.println("Error occurred: " + ex.getStatus().getDescription());
+                    }
                     ex.printStackTrace();
                 }
 
@@ -503,7 +613,29 @@ public class GUIClient implements ActionListener{
             System.out.println("Send Alert to be invoked ...");
 
             ManagedChannel channel3 = ManagedChannelBuilder.forAddress("localhost", 50053).usePlaintext().build();
-            AlertServiceGrpc.AlertServiceBlockingStub blockingStub = AlertServiceGrpc.newBlockingStub(channel3);
+            // Create custom CallCredentials for authentication
+            CallCredentials callCredentials = new CallCredentials() {
+
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            Metadata headers = new Metadata();
+                            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+                            headers.put(authKey, "Bearer 12345");
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+            // Add call credentials and deadline to the stub
+            AlertServiceGrpc.AlertServiceBlockingStub blockingStub = AlertServiceGrpc.newBlockingStub(channel3).withCallCredentials(callCredentials)
+                    .withDeadlineAfter(5, TimeUnit.SECONDS);
 
             //preparing message to send
             Alert request = Alert.newBuilder().setLocation(entry6.getText()).setMessage(entry7.getText()).build();
@@ -529,64 +661,77 @@ public class GUIClient implements ActionListener{
 
         } else if(label.equals("Broadcast Alerts")){
 
-//            if (!(broadcastLocations.isEmpty() && broadcastMessage.isEmpty())) {
-                // send request to server with all locations in the list
-                ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50053).usePlaintext().build();
+                ManagedChannel channel3 = ManagedChannelBuilder.forAddress("localhost", 50053).usePlaintext().build();
 
-                AlertServiceGrpc.AlertServiceStub asyncStub = AlertServiceGrpc.newStub(channel);
+            // Create custom CallCredentials for authentication
+            CallCredentials callCredentials = new CallCredentials() {
+
+                @Override
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                    appExecutor.execute(() -> {
+                        try {
+                            Metadata headers = new Metadata();
+                            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+                            headers.put(authKey, "Bearer 12345");
+                            applier.apply(headers);
+                        } catch (Throwable e) {
+                            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+                        }
+                    });
+                }
+
+                @Override
+                public void thisUsesUnstableApi() {}
+            };
+            // Add call credentials and deadline to the stub
+                AlertServiceGrpc.AlertServiceStub asyncStub = AlertServiceGrpc.newStub(channel3).withCallCredentials(callCredentials)
+                        .withDeadlineAfter(5, TimeUnit.SECONDS);
 
                 StreamObserver<AlertConfirmation> responseObserver = new StreamObserver<AlertConfirmation>() {
 
                     int count =0 ;
                     @Override
                     public void onNext(AlertConfirmation msg) {
-
                         reply8.append(String.valueOf(msg));
                         count += 1;
                     }
 
                     @Override
                     public void onError(Throwable t) {
+                        System.out.println("Error occurred: " + t.getMessage());
                         t.printStackTrace();
                     }
 
                     @Override
                     public void onCompleted() {
                         System.out.println("BroadcastAlerts stream is completed ... sent "+ count+ " alerts");
-                        // Shutdown the channel
-                        channel.shutdown();
-                        try {
-                            // Wait for the channel to terminate
-                            if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
-                                // Force shutdown if it doesn't terminate within the specified time
-                                channel.shutdownNow();
-                            }
-                        } catch (InterruptedException e) {
-                            // Force shutdown in case of an InterruptedException
-                            channel.shutdownNow();
-                        }
                     }
-
                 };
 
-                StreamObserver<Alert> requestObserver = asyncStub.broadcastAlerts(responseObserver);
 
+                    ClientCallStreamObserver<Alert> requestObserver = (ClientCallStreamObserver<Alert>) asyncStub.broadcastAlerts(responseObserver);
                 try {
-
                     for (int i = 0; i < broadcastLocations.size(); i++) {
+                        if (broadcastLocations.get(i) == null || broadcastMessage.get(i) == null) {
+                            System.err.println("Error: Invalid broadcast location or message.");
+                            requestObserver.cancel("Cancelled due to invalid input", null);
+                            continue;
+                        }
                         requestObserver.onNext(Alert.newBuilder().setLocation(broadcastLocations.get(i)).setMessage(broadcastMessage.get(i)).build());
-                        Thread.sleep(500);
                     }
-
 
                     // Mark the end of requests
                     requestObserver.onCompleted();
 
-                    Thread.sleep(1000);
+                    Thread.sleep(new Random().nextInt(1000) + 500);
 
                 } catch (RuntimeException exception) {
+                    System.err.println("Runtime exception occurred: " + exception.getMessage());
+                    requestObserver.cancel("Cancelled due to runtime exception", null);
                     exception.printStackTrace();
                 } catch (InterruptedException excep) {
+                    System.err.println("Interrupted exception occurred: " + excep.getMessage());
+                    requestObserver.cancel("Cancelled due to interrupted exception", null);
                     excep.printStackTrace();
                 }
 
@@ -594,242 +739,6 @@ public class GUIClient implements ActionListener{
             }
         }
 
-
-
-
-
-        /*
-             *
-             */
-//            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
-//            PollutionSensorService.PollutionSenserServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel);
-//
-//            //preparing message to send
-//            ds.PollutionSensorService.RequestMessage request = ds.PollutionSensorService.RequestMessage.newBuilder().setText(entry1.getText()).build();
-//
-//            //retreving reply from service
-//            ds.PollutionSensorService.ResponseMessage response = blockingStub.service1Do(request);
-//
-//            reply1.setText( String.valueOf( response.getLength()) );
-
-//        }else if (label.equals("Invoke Service 2")) {
-//            System.out.println("service 2 to be invoked ...");
-//
-//
-//            /*
-//             *
-//             */
-//            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50052).usePlaintext().build();
-//            Service2Grpc.Service2BlockingStub blockingStub = Service2Grpc.newBlockingStub(channel);
-//
-//            //preparing message to send
-//            ds.service2.RequestMessage request = ds.service2.RequestMessage.newBuilder().setText(entry2.getText()).build();
-//
-//            //retreving reply from service
-//            ds.service2.ResponseMessage response = blockingStub.service2Do(request);
-//
-//            reply2.setText( String.valueOf( response.getLength()) );
-//
-//        }else if (label.equals("Invoke Service 3")) {
-//            System.out.println("service 3 to be invoked ...");
-//
-//
-//            /*
-//             *
-//             */
-//            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50053).usePlaintext().build();
-//            Service3Grpc.Service3BlockingStub blockingStub = Service3Grpc.newBlockingStub(channel);
-//
-//            //preparing message to send
-//            ds.service3.RequestMessage request = ds.service3.RequestMessage.newBuilder().setText(entry3.getText()).build();
-//
-//            //retreving reply from service
-//            ds.service3.ResponseMessage response = blockingStub.service3Do(request);
-//
-//            reply3.setText( String.valueOf( response.getLength()) );
-//
-//        }else if (label.equals("Invoke Service 4")) {
-//            System.out.println("service 4 to be invoked ...");
-//
-//
-//            /*
-//             *
-//             */
-//            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50054).usePlaintext().build();
-//            Service4Grpc.Service4BlockingStub blockingStub = Service4Grpc.newBlockingStub(channel);
-//
-//            //preparing message to send
-//            ds.service4.RequestMessage request = ds.service4.RequestMessage.newBuilder().setText(entry4.getText()).build();
-//
-//            //retreving reply from service
-//            ds.service4.ResponseMessage response = blockingStub.service4Do(request);
-//
-//            reply4.setText( String.valueOf( response.getLength()) );
-//
-//        }else{
-//
-//        }
-
-
-//        private static JmDNS jmdns;
-//        private static String pollutionSensorServiceAddress = "_pollution-sensor._tcp.local.";
-//        private static int pollutionSensorServicePort = 50051;
-//        private static String pollutionAnalysisServiceAddress = "_pollution-analysis._tcp.local.";
-//        private static int pollutionAnalysisServicePort = 50052;
-//        private static String alertServiceAddress = "_alert-service._tcp.local.";
-//        private static int alertServicePort = 50053;
-//
-//
-//
-//        public static void main(String[] args) throws IOException {
-//            jmdns = JmDNS.create(InetAddress.getLocalHost());
-//            jmdns.addServiceListener("_pollution-sensor._tcp.local.", new SampleServiceListener());
-//            jmdns.addServiceListener("_pollution-analysis._tcp.local.", new SampleServiceListener());
-//            jmdns.addServiceListener("_alert-service._tcp.local.", new SampleServiceListener());
-
-//
-//            JTextField textNumber1;
-//            JTextField textNumber2;
-//            JTextArea textResponse ;
-//
-//
-//            // Create and set up the window.
-//            JFrame frame = new JFrame("Smart Pollution Tracker");
-//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//            frame.setSize(1000, 500);
-//            frame.setVisible(true);
-//
-//
-//            BoxLayout bl = new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS);
-//
-//            frame.getContentPane().setLayout(bl);
-//
-//            JPanel panel_service_1 = new JPanel();
-//            panel_service_1.setVisible(true);
-//            frame.getContentPane().add(panel_service_1);
-//            panel_service_1.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-//
-//            JLabel lblNewLabel_1 = new JLabel("Number 1");
-//            panel_service_1.add(lblNewLabel_1);
-//
-//            textNumber1 = new JTextField();
-//            panel_service_1.add(textNumber1);
-//            textNumber1.setColumns(10);
-//
-//            JLabel lblNewLabel_2 = new JLabel("Number 2");
-//            panel_service_1.add(lblNewLabel_2);
-//
-//            textNumber2 = new JTextField();
-//            panel_service_1.add(textNumber2);
-//            textNumber2.setColumns(10);
-//
-//
-//            JComboBox comboOperation = new JComboBox();
-//            comboOperation.setModel(new DefaultComboBoxModel(new String[] {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION"}));
-//            panel_service_1.add(comboOperation);
-//
-//
-//            JButton btnCalculate = new JButton("Calculate");
-//            btnCalculate.addActionListener(new ActionListener() {
-//                public void actionPerformed(ActionEvent e) {
-//
-//                    int num1 = Integer.parseInt(textNumber1.getText());
-//                    int num2 = Integer.parseInt(textNumber2.getText());
-//
-//                    int index = comboOperation.getSelectedIndex();
-//                    Operation operation = Operation.forNumber(index);
-//
-//                    CalculateRequest req = CalculateRequest.newBuilder().setNumber1(num1).setNumber2(num2).setOperation(operation).build();
-//
-//                    CalculateResponse response = blockingStub.calculate(req);
-//
-//                    textResponse.append("reply:"+ response.getResult() + " mes:"+ response.getMessage() + "\n");
-//
-//                    System.out.println("res: " + response.getResult() + " mes: " + response.getMessage());
-//
-//                }
-//            });
-//            panel_service_1.add(btnCalculate);
-//
-//            textResponse = new JTextArea(3, 20);
-//            textResponse .setLineWrap(true);
-//            textResponse.setWrapStyleWord(true);
-//
-//            JScrollPane scrollPane = new JScrollPane(textResponse);
-//
-//            //textResponse.setSize(new Dimension(15, 30));
-//            panel_service_1.add(scrollPane);
-//
-//
-//            JPanel panel_service_2 = new JPanel();
-//            frame.getContentPane().add(panel_service_2);
-//
-//            JPanel panel_service_3 = new JPanel();
-//            frame.getContentPane().add(panel_service_3);
-
-
-            // Set up the content pane.
-//            JPanel panel = new JPanel();
-//            frame.setContentPane(panel);
-//            panel.setLayout(new GridLayout(3, 10));
-//
-//            JButton pollutionSensorButton = new JButton("Pollution Sensor Service");
-//            JButton pollutionAnalysisButton = new JButton("Pollution Analysis Service");
-//            JButton alertServiceButton = new JButton("Alert Service");
-//
-//            panel.add(pollutionSensorButton);
-//            panel.add(pollutionAnalysisButton);
-//            panel.add(alertServiceButton);
-//
-//
-//
-//            // Add action listeners to buttons
-//            pollutionSensorButton.addActionListener(new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent e) {
-//                    // Perform actions specific to PollutionSensorService
-//                    // Example: Call gRPC methods using pollutionSensorServiceAddress and pollutionSensorServicePort
-//
-//                }
-//            });
-//
-//            pollutionAnalysisButton.addActionListener(new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent e) {
-//                    // Perform actions specific to PollutionAnalysisService
-//                    // Example: Call gRPC methods using pollutionAnalysisServiceAddress and pollutionAnalysisServicePort
-//                }
-//            });
-//
-//            alertServiceButton.addActionListener(new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent e) {
-//                    // Perform actions specific to AlertService
-//                    // Example: Call gRPC methods using alertServiceAddress and alertServicePort
-//                }
-//            });
-//
-//            // Display the window.
-//            frame.setLocationRelativeTo(null);
-//            frame.setVisible(true);
-//        }
-//
-
-//
-//
-//            public void serviceResolved(ServiceInfo info) {
-//                if (info.getType().equals("_pollution-sensor._tcp.local.")) {
-//                    pollutionSensorServiceAddress = info.getHostAddresses()[0];
-//                    pollutionSensorServicePort = info.getPort();
-//                } else if (info.getType().equals("_pollution-analysis._tcp.local.")) {
-//                    pollutionAnalysisServiceAddress = info.getHostAddresses()[0];
-//                    pollutionAnalysisServicePort = info.getPort();
-//                } else if (info.getType().equals("_alert-service._tcp.local.")) {
-//                    alertServiceAddress = info.getHostAddresses()[0];
-//                    alertServicePort = info.getPort();
-//                }
-//            }
-//        }
 }
 
 

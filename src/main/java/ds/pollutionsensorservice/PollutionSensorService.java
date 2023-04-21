@@ -1,7 +1,6 @@
 package ds.pollutionsensorservice;
 
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 
 import javax.jmdns.JmDNS;
@@ -16,7 +15,6 @@ import java.util.Random;
  * Description:
  *
  * @Author: Jiaxin Zhang
- * @Creat: 11/04/2023 17:11
  * @Version: 1.8
  */
 public class PollutionSensorService extends PollutionSensorServiceGrpc.PollutionSensorServiceImplBase {
@@ -40,6 +38,7 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
 
             Server server = ServerBuilder.forPort(port)
                     .addService(psService)
+                    .intercept(new AuthInterceptor()) // Add the authentication interceptor
                     .build()
                     .start();
 
@@ -121,4 +120,29 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
         }
 
 
+}
+
+class AuthInterceptor implements ServerInterceptor {
+
+    @Override
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+        String authHeader = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid 'authorization' header"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        String token = authHeader.substring("Bearer ".length());
+
+        // Validate the token
+        if (!"1111".equals(token)) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Invalid token"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        return next.startCall(call, headers);
+    }
 }

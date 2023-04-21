@@ -5,14 +5,9 @@ option java_package = "ds.alertservice";
 option java_outer_classname = "AlertServiceImp";
 
 service AlertService {
-//    rpc SubscribeAlerts (AlertSubscription) returns (stream Alert); // server-side streaming RPC
     rpc SendAlert (Alert) returns (AlertConfirmation); // simple RPC
     rpc BroadcastAlerts (stream Alert) returns (stream AlertConfirmation); // bidirectional streaming RPC
 }
-
-//message AlertSubscription {
-//    string location = 1;
-//}
 
 message Alert {
     string location = 1;

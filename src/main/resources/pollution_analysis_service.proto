@@ -6,7 +6,6 @@ option java_package = "ds.pollutionanalysisservice";
 option java_outer_classname = "PollutionAnalysisServiceImp";
 
 service PollutionAnalysisService {
-//    rpc AnalyzePollution (stream PollutionData) returns (PollutionAnalysis); // client-side streaming RPC
     rpc GetTrendingLocations (TrendingRequest) returns (TrendingLocations); // simple RPC
     rpc GetLiveTrends (LiveTrendsRequest) returns (stream PollutionAnalysis); // server-side streaming RPC
 }

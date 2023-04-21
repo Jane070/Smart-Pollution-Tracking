@@ -1,15 +1,17 @@
 package ds.alertservice;
 
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
 /**
@@ -17,7 +19,6 @@ import java.util.Random;
  * Description:
  *
  * @Author: Jiaxin Zhang
- * @Creat: 11/04/2023 17:16
  * @Version: 1.8
  */
 public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
@@ -26,20 +27,13 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
         private Map<String, String> alertMessages = new HashMap<>();
 
     public static void main(String[] args) {
-        JmDNS jmdns = null;
-        try {
-            jmdns = JmDNS.create(InetAddress.getLocalHost());
-            // Register PollutionSensorService
-            ServiceInfo alertServiceInfo = ServiceInfo.create("_alert-service._tcp.local.", "AlertService", 50053, "");
-            jmdns.registerService(alertServiceInfo);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         AlertService alertService = new AlertService();
 
-        int port = 50053;
+        Properties prop = alertService.getProperties();
 
+        alertService.registerService(prop);
+
+        int port = Integer.valueOf( prop.getProperty("service_port") );// #.50053;
 
         try {
 
@@ -48,7 +42,7 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
                     .build()
                     .start();
 
-            System.out.println("Alert Server started, listening on " + port);
+            System.out.println("Math Server started, listening on " + port);
 
             server.awaitTermination();
 
@@ -61,24 +55,70 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
             e.printStackTrace();
         }
     }
-//        @Override
-//        public void subscribeAlerts(AlertSubscription request, StreamObserver<Alert> responseObserver) {
-//            String location = request.getLocation();
-//            for (int i = 0; i < 5; i++) {
-//                String message = alertMessages.getOrDefault(location, "No alerts");
-//                Alert alert = Alert.newBuilder()
-//                        .setLocation(location)
-//                        .setMessage(message)
-//                        .setTimestamp(System.currentTimeMillis())
-//                        .build();
-//                responseObserver.onNext(alert);
-//            }
-//            responseObserver.onCompleted();
-//        }
+
+    private Properties getProperties() {
+
+        Properties prop = null;
+
+        try (InputStream input = new FileInputStream("src/main/resources/alert_service.properties")) {
+
+            prop = new Properties();
+
+            // load a properties file
+            prop.load(input);
+
+            // get the property value and print it out
+            System.out.println("Math Service properies ...");
+            System.out.println("\t service_type: " + prop.getProperty("service_type"));
+            System.out.println("\t service_name: " +prop.getProperty("service_name"));
+            System.out.println("\t service_description: " +prop.getProperty("service_description"));
+            System.out.println("\t service_port: " +prop.getProperty("service_port"));
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return prop;
+    }
+
+    private  void registerService(Properties prop) {
+
+        try {
+            // Create a JmDNS instance
+            JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
+
+            String service_type = prop.getProperty("service_type") ;//"_http._tcp.local.";
+            String service_name = prop.getProperty("service_name")  ;// "example";
+            // int service_port = 1234;
+            int service_port = Integer.valueOf( prop.getProperty("service_port") );// #.50053;
+
+
+            String service_description_properties = prop.getProperty("service_description")  ;//"path=index.html";
+
+            // Register a service
+            ServiceInfo serviceInfo = ServiceInfo.create(service_type, service_name, service_port, service_description_properties);
+            jmdns.registerService(serviceInfo);
+
+            System.out.printf("registrering service with type %s and name %s \n", service_type, service_name);
+
+            // Wait a bit
+            Thread.sleep(1000);
+
+            // Unregister all services
+            //jmdns.unregisterAllServices();
+
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+    }
 
         @Override
         public void sendAlert(Alert request, StreamObserver<AlertConfirmation> responseObserver) {
-            alertMessages.put(request.getLocation(), request.getMessage());
+//            alertMessages.put(request.getLocation(), request.getMessage());
             AlertConfirmation confirmation = AlertConfirmation.newBuilder()
                     .setMessage("Alert sent")
                     .setTimestamp(System.currentTimeMillis())
@@ -93,25 +133,53 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
 
                 @Override
                 public void onNext(Alert alert) {
+
                     alertMessages.put(alert.getLocation(), alert.getMessage());
+                    AlertConfirmation confirmation = AlertConfirmation.newBuilder()
+                            .setMessage(alert.getLocation() + " --- Alert broadcasted")
+                            .setTimestamp(System.currentTimeMillis())
+                            .build();
+                    responseObserver.onNext(confirmation);
+
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    // Handle error
+                    t.printStackTrace();
                 }
 
                 @Override
                 public void onCompleted() {
-                    AlertConfirmation confirmation = AlertConfirmation.newBuilder()
-                            .setMessage(" Alert broadcasted")
-                            .setTimestamp(System.currentTimeMillis())
-                            .build();
-                    responseObserver.onNext(confirmation);
+                    System.out.println("Alerts broadcasted");
                     responseObserver.onCompleted();
                 }
             };
         }
     }
+
+class AuthInterceptor implements ServerInterceptor {
+
+    @Override
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+        String authHeader = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid 'authorization' header"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        String token = authHeader.substring("Bearer ".length());
+
+        // Validate the token
+        if (!"12345".equals(token)) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Invalid token"), headers);
+            return new ServerCall.Listener<ReqT>() {
+            };
+        }
+
+        return next.startCall(call, headers);
+    }
+}
 
 
