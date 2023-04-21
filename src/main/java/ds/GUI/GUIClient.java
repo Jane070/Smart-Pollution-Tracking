@@ -65,7 +65,7 @@ public class GUIClient implements ActionListener{
             jmdns.addServiceListener("_alert-service._tcp.local.", new MyServiceListener());
 
             // Wait a bit
-            Thread.sleep(20000);
+            Thread.sleep(100000);
 
         } catch (UnknownHostException e) {
             System.out.println(e.getMessage());

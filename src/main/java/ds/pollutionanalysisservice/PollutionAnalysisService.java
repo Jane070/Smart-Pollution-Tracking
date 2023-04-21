@@ -1,14 +1,18 @@
 package ds.pollutionanalysisservice;
 
+import ds.pollutionsensorservice.PollutionSensorService;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 
 /**
@@ -24,29 +28,22 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
         private List<String> trendingLocations = Arrays.asList("Beijing", "Shijiazhuang", "Zhengzhou");
 
     public static void main(String[] args) {
-        JmDNS jmdns = null;
-        try {
-            jmdns = JmDNS.create(InetAddress.getLocalHost());
-            // Register PollutionSensorService
-            ServiceInfo pollutionAnalysisServiceInfo = ServiceInfo.create("_pollution-analysis._tcp.local.", "PollutionAnalysisService", 50052, "");
-            jmdns.registerService(pollutionAnalysisServiceInfo);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        PollutionAnalysisService pollutionAnalysisService = new PollutionAnalysisService();
 
-        PollutionAnalysisService paService = new PollutionAnalysisService();
+        Properties prop = pollutionAnalysisService.getProperties();
 
-        int port = 50052;
+        pollutionAnalysisService.registerService(prop);
+
+        int port = Integer.valueOf( prop.getProperty("service_port") );// #.50051;
 
         try {
 
             Server server = ServerBuilder.forPort(port)
-                    .addService(paService)
-                    .intercept(new AuthInterceptor()) // Add the authentication interceptor
+                    .addService(pollutionAnalysisService)
                     .build()
                     .start();
 
-            System.out.println("Pollution Analysis Server started, listening on " + port);
+            System.out.println("Math Server started, listening on " + port);
 
             server.awaitTermination();
 
@@ -58,7 +55,69 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
     }
+
+    private Properties getProperties() {
+
+        Properties prop = null;
+
+        try (InputStream input = new FileInputStream("src/main/resources/pollution_analysis_service.properties")) {
+
+            prop = new Properties();
+
+            // load a properties file
+            prop.load(input);
+
+            // get the property value and print it out
+            System.out.println("Math Service properies ...");
+            System.out.println("\t service_type: " + prop.getProperty("service_type"));
+            System.out.println("\t service_name: " +prop.getProperty("service_name"));
+            System.out.println("\t service_description: " +prop.getProperty("service_description"));
+            System.out.println("\t service_port: " +prop.getProperty("service_port"));
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return prop;
+    }
+
+    private  void registerService(Properties prop) {
+
+        try {
+            // Create a JmDNS instance
+            JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
+
+            String service_type = prop.getProperty("service_type") ;//"_http._tcp.local.";
+            String service_name = prop.getProperty("service_name")  ;// "example";
+            // int service_port = 1234;
+            int service_port = Integer.valueOf( prop.getProperty("service_port") );// #.50052;
+
+
+            String service_description_properties = prop.getProperty("service_description")  ;//"path=index.html";
+
+            // Register a service
+            ServiceInfo serviceInfo = ServiceInfo.create(service_type, service_name, service_port, service_description_properties);
+            jmdns.registerService(serviceInfo);
+
+            System.out.printf("registrering service with type %s and name %s \n", service_type, service_name);
+
+            // Wait a bit
+            Thread.sleep(1000);
+
+            // Unregister all services
+            //jmdns.unregisterAllServices();
+
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+    }
+
 
     @Override
     public void getTrendingLocations(TrendingRequest request, StreamObserver<TrendingLocations> responseObserver) {
