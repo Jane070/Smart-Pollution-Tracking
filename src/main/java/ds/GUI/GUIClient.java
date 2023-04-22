@@ -40,13 +40,10 @@ public class GUIClient implements ActionListener{
     private JTextField entry2, entry5,entry6, entry7, entry8, entry9;
     private JTextArea reply2, reply3, reply4, reply5, reply6, reply8;
     private JTextField entry3;
-    private JTextField entry4;
     List<String> locations = new ArrayList<>();
     List<String> broadcastLocations = new ArrayList<>();
     List<String> broadcastMessage = new ArrayList<>();
     private ServiceInfo PollutionSensorServiceInfo;
-//    private final CountDownLatch latch = new CountDownLatch(1);
-    private List<ServiceInfo> serviceInfos = new ArrayList<>();
 
     public static void main(String[] args) throws InterruptedException {
 
