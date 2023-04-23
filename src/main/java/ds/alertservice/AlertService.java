@@ -2,7 +2,6 @@ package ds.alertservice;
 
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
-
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 import java.io.FileInputStream;

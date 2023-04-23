@@ -1,9 +1,7 @@
 package ds.pollutionsensorservice;
 
-import ds.alertservice.AlertService;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
-
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 import java.io.FileInputStream;
@@ -16,8 +14,6 @@ import java.util.Random;
 
 /**
  * ClassName: PollutionSensorService
- * Description:
- *
  * @Author: Jiaxin Zhang
  * @Version: 1.8
  */
@@ -100,9 +96,6 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
 
             // Wait a bit
             Thread.sleep(1000);
-
-            // Unregister all services
-            //jmdns.unregisterAllServices();
 
         } catch (IOException e) {
             System.out.println(e.getMessage());

@@ -8,8 +8,6 @@ import ds.pollutionsensorservice.*;
 import io.grpc.*;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-
-
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceInfo;
@@ -29,8 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * ClassName: GUIClient
- * Description:
- *
  * @Author: Jiaxin Zhang
  * @Version: 1.8
  */
@@ -130,24 +126,29 @@ public class GUIClient implements ActionListener{
         String label = button.getActionCommand();
 
         if (label.equals("Get pollution data")) {
+            // Print a message to the console
             System.out.println("Get pollution data to be invoked ...");
-            ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+            // Create a channel to communicate with the gRPC server
+            ManagedChannelBuilder channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
             channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
             channelBuilder.keepAliveWithoutCalls(true);
             ManagedChannel channel = channelBuilder.build();
-
+            // Set up authentication credentials
             Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
             Metadata headers = new Metadata();
             headers.put(authKey, "Bearer 1111");
-
+            // Create call credentials
             CallCredentials callCredentials = new CallCredentials() {
+                // This method is called by gRPC to apply metadata to the request
                 @Override
                 public void applyRequestMetadata(MethodDescriptor<?, ?> method,
                                                  Attributes attrs, Executor appExecutor, MetadataApplier applier) {
                     appExecutor.execute(() -> {
                         try {
+                            // Apply the headers to the request
                             applier.apply(headers);
                         } catch (Throwable e) {
+                            // If there is an error, fail the request with an authentication error
                             applier.fail(Status.UNAUTHENTICATED.withCause(e));
                         }
                     });
@@ -155,15 +156,17 @@ public class GUIClient implements ActionListener{
                 @Override
                 public void thisUsesUnstableApi() {}
             };
+            // Create a blocking stub to make synchronous requests to the gRPC server
             PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc
                     .newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
-            //preparing message to send
+            // Prepare the request to send to the gRPC server
             GetPollutionDataRequest request = GetPollutionDataRequest.newBuilder().setLocation(entry1.getText()).build();
-            //retreving reply from service
+            // Send the request and retrieve the response from the gRPC server
             try {
                 PollutionData response = blockingStub.getPollutionData(request);
                 reply1.setText(String.valueOf(response));
             } catch (StatusRuntimeException ex) {
+                // If there is an error, print an error message to the console and print the stack trace
                 System.err.println("Error occurred: " + ex.getMessage());
                 ex.printStackTrace();
             }
@@ -173,7 +176,7 @@ public class GUIClient implements ActionListener{
 
             System.out.println("Get the data of the last three days to be invoked ...");
 
-            ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+            ManagedChannelBuilder channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
             channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
             channelBuilder.keepAliveWithoutCalls(true);
             ManagedChannel channel = channelBuilder.build();
@@ -228,7 +231,7 @@ public class GUIClient implements ActionListener{
         } else if (label.equals("Average")) {
             if (!locations.isEmpty()) {
                 // send request to server with all locations in the list
-                ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
+                ManagedChannelBuilder channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
                 channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
                 channelBuilder.keepAliveWithoutCalls(true);
                 ManagedChannel channel = channelBuilder.build();
