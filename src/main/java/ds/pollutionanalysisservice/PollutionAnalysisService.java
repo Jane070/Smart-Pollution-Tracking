@@ -121,25 +121,32 @@ public class PollutionAnalysisService extends PollutionAnalysisServiceGrpc.Pollu
 
     @Override
     public void getTrendingLocations(TrendingRequest request, StreamObserver<TrendingLocations> responseObserver) {
-        TrendingLocations locations = TrendingLocations.newBuilder()
-                .setLocations(trendingLocations.toString())
-                .build();
-        responseObserver.onNext(locations);
-        responseObserver.onCompleted();
+        try {
+            TrendingLocations locations = TrendingLocations.newBuilder()
+                    .setLocations(trendingLocations.toString())
+                    .build();
+            responseObserver.onNext(locations);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+        }
     }
 
     @Override
     public void getLiveTrends(LiveTrendsRequest request, StreamObserver<PollutionAnalysis> responseObserver) {
-//        List<String> locationsList = Arrays.asList(request.getLocations().split("\\s*,\\s*"));
-        for (String location : request.getLocationsList()) {
-            String trend = random.nextBoolean() ? "Increasing" : "Decreasing";
-            PollutionAnalysis analysis = PollutionAnalysis.newBuilder()
-                    .setLocation(location)
-                    .setTrend(trend)
-                    .build();
-            responseObserver.onNext(analysis);
+        try {
+            for (String location : request.getLocationsList()) {
+                String trend = random.nextBoolean() ? "Increasing" : "Decreasing";
+                PollutionAnalysis analysis = PollutionAnalysis.newBuilder()
+                        .setLocation(location)
+                        .setTrend(trend)
+                        .build();
+                responseObserver.onNext(analysis);
+            }
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
         }
-        responseObserver.onCompleted();
     }
 }
 

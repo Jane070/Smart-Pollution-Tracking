@@ -87,7 +87,6 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
 
             String service_type = prop.getProperty("service_type") ;//"_http._tcp.local.";
             String service_name = prop.getProperty("service_name")  ;// "example";
-            // int service_port = 1234;
             int service_port = Integer.valueOf( prop.getProperty("service_port") );// #.50051;
 
 
@@ -119,18 +118,27 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
 
         @Override
         public void getPollutionData(GetPollutionDataRequest request, StreamObserver<PollutionData> responseObserver) {
-            PollutionData data = generatePollutionData(request.getLocation());
-            responseObserver.onNext(data);
-            responseObserver.onCompleted();
+            try {
+                PollutionData data = generatePollutionData(request.getLocation());
+                responseObserver.onNext(data);
+                responseObserver.onCompleted();
+            } catch (Exception e) {
+                responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+            }
         }
 
         @Override
-        public void getCityMultiplePollutionData(GetCityMultiplePollutionDataRequest request, StreamObserver<PollutionData> responseObserver) {
-            for (int i = 0; i < 3; i++) {
-                PollutionData data = generatePollutionData(request.getLocation());
-                responseObserver.onNext(data);
+        public void getCityMultiplePollutionData(GetCityMultiplePollutionDataRequest request,
+                                                 StreamObserver<PollutionData> responseObserver) {
+            try {
+                for (int i = 0; i < 3; i++) {
+                    PollutionData data = generatePollutionData(request.getLocation());
+                    responseObserver.onNext(data);
+                }
+                responseObserver.onCompleted();
+            } catch (Exception e) {
+                responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
             }
-            responseObserver.onCompleted();
         }
 
         @Override
@@ -142,27 +150,37 @@ public class PollutionSensorService extends PollutionSensorServiceGrpc.Pollution
 
                 @Override
                 public void onNext(GetAveragePollutionDataRequest request) {
-                    PollutionData data = generatePollutionData(request.getLocation());
-                    totalAirPollution += data.getAirPollution();
-                    totalWaterPollution += data.getWaterPollution();
-                    count++;
+                    try {
+                        PollutionData data = generatePollutionData(request.getLocation());
+                        totalAirPollution += data.getAirPollution();
+                        totalWaterPollution += data.getWaterPollution();
+                        count++;
+                    }catch (Exception e){
+                        onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+                    }
+
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    // Handle error
+                    t.printStackTrace();
                 }
 
                 @Override
                 public void onCompleted() {
-                    PollutionData averageData = PollutionData.newBuilder()
-                            .setLocation("Average")
-                            .setAirPollution(totalAirPollution / count)
-                            .setWaterPollution(totalWaterPollution / count)
-                            .setTimestamp(System.currentTimeMillis())
-                            .build();
-                    responseObserver.onNext(averageData);
-                    responseObserver.onCompleted();
+                    try {
+                        PollutionData averageData = PollutionData.newBuilder()
+                                .setLocation("Average")
+                                .setAirPollution(totalAirPollution / count)
+                                .setWaterPollution(totalWaterPollution / count)
+                                .setTimestamp(System.currentTimeMillis())
+                                .build();
+                        responseObserver.onNext(averageData);
+                        responseObserver.onCompleted();
+                    }catch (Exception e){
+                        responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+                    }
+
                 }
             };
         }

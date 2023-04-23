@@ -27,31 +27,25 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
         private Map<String, String> alertMessages = new HashMap<>();
 
     public static void main(String[] args) {
+
         AlertService alertService = new AlertService();
-
         Properties prop = alertService.getProperties();
-
         alertService.registerService(prop);
-
         int port = Integer.valueOf( prop.getProperty("service_port") );// #.50053;
 
         try {
-
             Server server = ServerBuilder.forPort(port)
                     .addService(alertService)
                     .build()
                     .start();
-
             System.out.println("Math Server started, listening on " + port);
 
             server.awaitTermination();
-
-
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+
             e.printStackTrace();
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
+
             e.printStackTrace();
         }
     }
@@ -59,14 +53,10 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
     private Properties getProperties() {
 
         Properties prop = null;
-
         try (InputStream input = new FileInputStream("src/main/resources/alert_service.properties")) {
-
             prop = new Properties();
-
             // load a properties file
             prop.load(input);
-
             // get the property value and print it out
             System.out.println("Math Service properies ...");
             System.out.println("\t service_type: " + prop.getProperty("service_type"));
@@ -93,7 +83,7 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
             int service_port = Integer.valueOf( prop.getProperty("service_port") );// #.50053;
 
 
-            String service_description_properties = prop.getProperty("service_description")  ;//"path=index.html";
+            String service_description_properties = prop.getProperty("service_description")  ;
 
             // Register a service
             ServiceInfo serviceInfo = ServiceInfo.create(service_type, service_name, service_port, service_description_properties);
@@ -118,13 +108,17 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
 
         @Override
         public void sendAlert(Alert request, StreamObserver<AlertConfirmation> responseObserver) {
-//            alertMessages.put(request.getLocation(), request.getMessage());
-            AlertConfirmation confirmation = AlertConfirmation.newBuilder()
-                    .setMessage("Alert sent")
-                    .setTimestamp(System.currentTimeMillis())
-                    .build();
-            responseObserver.onNext(confirmation);
-            responseObserver.onCompleted();
+            try {
+                alertMessages.put(request.getLocation(), request.getMessage());
+                AlertConfirmation confirmation = AlertConfirmation.newBuilder()
+                        .setMessage("Alert sent")
+                        .setTimestamp(System.currentTimeMillis())
+                        .build();
+                responseObserver.onNext(confirmation);
+                responseObserver.onCompleted();
+            } catch (Exception e) {
+                responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+            }
         }
 
         @Override
@@ -134,12 +128,16 @@ public class AlertService extends AlertServiceGrpc.AlertServiceImplBase{
                 @Override
                 public void onNext(Alert alert) {
 
-                    alertMessages.put(alert.getLocation(), alert.getMessage());
-                    AlertConfirmation confirmation = AlertConfirmation.newBuilder()
-                            .setMessage(alert.getLocation() + " --- Alert broadcasted")
-                            .setTimestamp(System.currentTimeMillis())
-                            .build();
-                    responseObserver.onNext(confirmation);
+                    try {
+                        alertMessages.put(alert.getLocation(), alert.getMessage());
+                        AlertConfirmation confirmation = AlertConfirmation.newBuilder()
+                                .setMessage(alert.getLocation() + " --- Alert broadcasted")
+                                .setTimestamp(System.currentTimeMillis())
+                                .build();
+                        responseObserver.onNext(confirmation);
+                    } catch (Exception e) {
+                        responseObserver.onError(Status.INTERNAL.withDescription("An error occurred: " + e.getMessage()).asRuntimeException());
+                    }
 
                 }
 

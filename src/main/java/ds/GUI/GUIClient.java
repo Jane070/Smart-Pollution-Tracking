@@ -52,7 +52,6 @@ public class GUIClient implements ActionListener{
         gui.build();
 
         try {
-
             // Create a JmDNS instance
             JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
 
@@ -89,220 +88,6 @@ public class GUIClient implements ActionListener{
         }
 
     }
-
-
-    private JPanel getService1JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JLabel label = new JLabel("Enter a city")	;
-        panel.add(label);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-        entry1 = new JTextField("",10);
-        panel.add(entry1);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        JButton button = new JButton("Get pollution data");
-        button.addActionListener(this);
-        panel.add(button);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        reply1 = new JTextField("", 100);
-        reply1 .setEditable(false);
-        panel.add(reply1 );
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-    private JPanel getService2JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JLabel label = new JLabel("Enter Location")	;
-        panel.add(label);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-        entry2 = new JTextField("",10);
-        panel.add(entry2);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        JButton button = new JButton("Get Data of Last 3 Days");
-        button.addActionListener(this);
-        panel.add(button);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        reply2 = new JTextArea("",20,100);
-        reply2.setEditable(false);
-//        reply2.setPreferredSize(new Dimension(reply2.getPreferredSize().width, 50));
-        panel.add(reply2);
-
-
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-    private JPanel getService3JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-       JLabel label = new JLabel("Enter Location:");
-        panel.add(label);
-
-        entry3 = new JTextField();
-        panel.add(entry3);
-
-        JButton addButton = new JButton("Add City");
-        addButton.addActionListener(this);
-        panel.add(addButton);
-
-        reply3 = new JTextArea(10, 30);
-        JScrollPane scrollPane = new JScrollPane(reply3);
-        reply3.setEditable(false);
-        panel.add(scrollPane);
-
-        JButton completeButton = new JButton("Average");
-        completeButton.addActionListener(this);
-        panel.add(completeButton);
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-    private JPanel getService4JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JButton button = new JButton("Get Trending Locations");
-        button.addActionListener(this);
-        panel.add(button);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        reply4 = new JTextArea(10, 10);
-        JScrollPane scrollPane = new JScrollPane(reply4);
-        panel.add(scrollPane);
-        reply4 .setEditable(false);
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-    private JPanel getService5JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JLabel label = new JLabel("Enter Location")	;
-        panel.add(label);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-        entry5 = new JTextField("",10);
-        panel.add(entry5);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        JButton button = new JButton("Get Live Trends");
-        button.addActionListener(this);
-        panel.add(button);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        reply5 = new JTextArea("",20,100);
-        reply5.setEditable(false);
-        panel.add(reply5);
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-    }
-
-    private JPanel getService6JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JLabel label = new JLabel("Enter Location")	;
-        panel.add(label);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-        entry6 = new JTextField("",10);
-        panel.add(entry6);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        JLabel label1 = new JLabel("Enter Alert Message")	;
-        panel.add(label1);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-        entry7 = new JTextField("",50);
-        panel.add(entry7);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        JButton button = new JButton("Send Alert");
-        button.addActionListener(this);
-        panel.add(button);
-        panel.add(Box.createRigidArea(new Dimension(10, 0)));
-
-        reply6 = new JTextArea(20, 100);
-        reply6 .setEditable(false);
-        panel.add(reply6);
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-    private JPanel getService8JPanel() {
-
-        JPanel panel = new JPanel();
-
-        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
-
-        JLabel label = new JLabel("Enter Broadcast Location: ");
-        panel.add(label);
-
-        entry8 = new JTextField();
-        panel.add(entry8);
-
-        JLabel label1 = new JLabel("Enter Alert Message:");
-        panel.add(label1);
-
-        entry9 = new JTextField();
-        panel.add(entry9);
-
-        JButton addButton = new JButton("Add");
-        addButton.addActionListener(this);
-        panel.add(addButton);
-
-        reply8 = new JTextArea(10, 30);
-        JScrollPane scrollPane = new JScrollPane(reply8);
-        reply8.setEditable(false);
-        panel.add(scrollPane);
-
-        JButton completeButton = new JButton("Broadcast Alerts");
-        completeButton.addActionListener(this);
-        panel.add(completeButton);
-
-        panel.setLayout(boxlayout);
-
-        return panel;
-
-    }
-
-
 
 
 
@@ -343,12 +128,9 @@ public class GUIClient implements ActionListener{
     public void actionPerformed(ActionEvent e) {
         JButton button = (JButton)e.getSource();
         String label = button.getActionCommand();
-//        ManagedChannel channel1 = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
 
         if (label.equals("Get pollution data")) {
-
             System.out.println("Get pollution data to be invoked ...");
-
             ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
             channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
             channelBuilder.keepAliveWithoutCalls(true);
@@ -360,7 +142,8 @@ public class GUIClient implements ActionListener{
 
             CallCredentials callCredentials = new CallCredentials() {
                 @Override
-                public void applyRequestMetadata(MethodDescriptor<?, ?> method, Attributes attrs, Executor appExecutor, MetadataApplier applier) {
+                public void applyRequestMetadata(MethodDescriptor<?, ?> method,
+                                                 Attributes attrs, Executor appExecutor, MetadataApplier applier) {
                     appExecutor.execute(() -> {
                         try {
                             applier.apply(headers);
@@ -369,15 +152,13 @@ public class GUIClient implements ActionListener{
                         }
                     });
                 }
-
                 @Override
                 public void thisUsesUnstableApi() {}
             };
-            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
-
+            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc
+                    .newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
             //preparing message to send
             GetPollutionDataRequest request = GetPollutionDataRequest.newBuilder().setLocation(entry1.getText()).build();
-
             //retreving reply from service
             try {
                 PollutionData response = blockingStub.getPollutionData(request);
@@ -392,7 +173,6 @@ public class GUIClient implements ActionListener{
 
             System.out.println("Get the data of the last three days to be invoked ...");
 
-//            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext().build();
             ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress("localhost", 50051).usePlaintext();
             channelBuilder.keepAliveTimeout(60, TimeUnit.SECONDS);
             channelBuilder.keepAliveWithoutCalls(true);
@@ -417,12 +197,11 @@ public class GUIClient implements ActionListener{
                 @Override
                 public void thisUsesUnstableApi() {}
             };
-
-            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc.newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
-
+            PollutionSensorServiceGrpc.PollutionSensorServiceBlockingStub blockingStub = PollutionSensorServiceGrpc
+                    .newBlockingStub(channel).withCallCredentials(callCredentials).withDeadlineAfter(60, TimeUnit.SECONDS);
             //preparing message to send
-            GetCityMultiplePollutionDataRequest request = GetCityMultiplePollutionDataRequest.newBuilder().setLocation(entry2.getText()).setNumOfDays(3).build();
-
+            GetCityMultiplePollutionDataRequest request = GetCityMultiplePollutionDataRequest
+                    .newBuilder().setLocation(entry2.getText()).setNumOfDays(3).build();
             //retreving reply from service
             try {
                 Iterator<PollutionData> responces = blockingStub.getCityMultiplePollutionData(request);
@@ -435,9 +214,9 @@ public class GUIClient implements ActionListener{
                 ex.printStackTrace();
             }
 
-        }else if (label.equals("Add City")) {
+        }else if (label.equals("Add Location")) {
 
-            System.out.println("Add City");
+            System.out.println("Add Location");
 
             String location = entry3.getText().trim();
             if (!location.isEmpty()) {
@@ -502,6 +281,7 @@ public class GUIClient implements ActionListener{
                 try {
                     for (int i = 0; i < locations.size(); i++) {
                         requestObserver.onNext(GetAveragePollutionDataRequest.newBuilder().setLocation(locations.get(i)).build());
+
                         Thread.sleep(500);
                     }
 
@@ -731,10 +511,217 @@ public class GUIClient implements ActionListener{
                     requestObserver.cancel("Cancelled due to interrupted exception", null);
                     excep.printStackTrace();
                 }
-
-
             }
         }
+
+
+    private JPanel getService1JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Location")	;
+        panel.add(label);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+        entry1 = new JTextField("",10);
+        panel.add(entry1);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        JButton button = new JButton("Get pollution data");
+        button.addActionListener(this);
+        panel.add(button);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        reply1 = new JTextField("", 100);
+        reply1 .setEditable(false);
+        panel.add(reply1 );
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
+
+    private JPanel getService2JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Location")	;
+        panel.add(label);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+        entry2 = new JTextField("",10);
+        panel.add(entry2);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        JButton button = new JButton("Get Data of Last 3 Days");
+        button.addActionListener(this);
+        panel.add(button);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        reply2 = new JTextArea("",20,100);
+        reply2.setEditable(false);
+        panel.add(reply2);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
+
+    private JPanel getService3JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Location:");
+        panel.add(label);
+
+        entry3 = new JTextField();
+        panel.add(entry3);
+
+        JButton addButton = new JButton("Add Location");
+        addButton.addActionListener(this);
+        panel.add(addButton);
+
+        reply3 = new JTextArea(10, 30);
+        JScrollPane scrollPane = new JScrollPane(reply3);
+        reply3.setEditable(false);
+        panel.add(scrollPane);
+
+        JButton completeButton = new JButton("Average");
+        completeButton.addActionListener(this);
+        panel.add(completeButton);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
+
+    private JPanel getService4JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JButton button = new JButton("Get Trending Locations");
+        button.addActionListener(this);
+        panel.add(button);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        reply4 = new JTextArea(10, 10);
+        JScrollPane scrollPane = new JScrollPane(reply4);
+        panel.add(scrollPane);
+        reply4 .setEditable(false);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
+
+    private JPanel getService5JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Location")	;
+        panel.add(label);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+        entry5 = new JTextField("",10);
+        panel.add(entry5);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        JButton button = new JButton("Get Live Trends");
+        button.addActionListener(this);
+        panel.add(button);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        reply5 = new JTextArea("",20,100);
+        reply5.setEditable(false);
+        panel.add(reply5);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+    }
+
+    private JPanel getService6JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Location")	;
+        panel.add(label);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+        entry6 = new JTextField("",10);
+        panel.add(entry6);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        JLabel label1 = new JLabel("Enter Alert Message")	;
+        panel.add(label1);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+        entry7 = new JTextField("",50);
+        panel.add(entry7);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        JButton button = new JButton("Send Alert");
+        button.addActionListener(this);
+        panel.add(button);
+        panel.add(Box.createRigidArea(new Dimension(10, 0)));
+
+        reply6 = new JTextArea(20, 100);
+        reply6 .setEditable(false);
+        panel.add(reply6);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
+
+    private JPanel getService8JPanel() {
+
+        JPanel panel = new JPanel();
+
+        BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.X_AXIS);
+
+        JLabel label = new JLabel("Enter Broadcast Location: ");
+        panel.add(label);
+
+        entry8 = new JTextField();
+        panel.add(entry8);
+
+        JLabel label1 = new JLabel("Enter Alert Message:");
+        panel.add(label1);
+
+        entry9 = new JTextField();
+        panel.add(entry9);
+
+        JButton addButton = new JButton("Add");
+        addButton.addActionListener(this);
+        panel.add(addButton);
+
+        reply8 = new JTextArea(10, 30);
+        JScrollPane scrollPane = new JScrollPane(reply8);
+        reply8.setEditable(false);
+        panel.add(scrollPane);
+
+        JButton completeButton = new JButton("Broadcast Alerts");
+        completeButton.addActionListener(this);
+        panel.add(completeButton);
+
+        panel.setLayout(boxlayout);
+
+        return panel;
+
+    }
 
 }
 
